@@ -1,0 +1,169 @@
+`timescale 1ns / 1ps
+
+module shifter(in, out);
+  input [15:0] in;
+  output [7:0] out;
+  assign out = in[9:2];
+endmodule
+
+module my_mux_aux(a, b, sel, y);
+  input a, b, sel;
+  output y;
+  assign y = (a & ~sel) | (b & sel);
+endmodule
+
+module my_mux(a, b, sel, y);
+  input [7:0] a, b;
+  input sel;
+  output [7:0] y;
+  my_mux_aux m_0(a[0], b[0], sel, y[0]);
+  my_mux_aux m_1(a[1], b[1], sel, y[1]);
+  my_mux_aux m_2(a[2], b[2], sel, y[2]);
+  my_mux_aux m_3(a[3], b[3], sel, y[3]);
+  my_mux_aux m_4(a[4], b[4], sel, y[4]);
+  my_mux_aux m_5(a[5], b[5], sel, y[5]);
+  my_mux_aux m_6(a[6], b[6], sel, y[6]);
+  my_mux_aux m_7(a[7], b[7], sel, y[7]);
+endmodule
+
+// Rectified linear unit
+// out = max(0, in/4)
+// 16 bit signed input
+// 8 bit unsigned output
+module relu(in, out);
+    input [15:0] in;
+    output [7:0] out;
+
+  wire [7:0] div_4;
+  shifter shift_0(in, div_4);
+  my_mux mux_0(div_4, 0, in[15], out);
+  
+endmodule
+
+// Pipelined 5 input ripple-carry adder
+// 16 bit signed inputs
+// 1 bit input: valid (when the other inputs are useful numbers)
+// 16 bit signed output (truncated)
+// 1 bit output: ready (when the output is the sum of valid inputs)
+module piped_adder(clk, a, b, c, d, e, valid, sum, ready);
+    input clk, valid;
+    input [15:0] a, b, c, d, e;
+    output [15:0] sum;
+    output ready;
+  
+    wire [2:0] carry_out_0, carry_in_0;
+  wire [3:0] sum_0;
+  adder5carry adder_0 (a[3:0], b[3:0], c[3:0], d[3:0], e[3:0], 1'b0, 1'b0, 1'b0, carry_out_0[0], carry_out_0[1], carry_out_0[2], sum_0);
+  
+  wire [7:0] sum_1;
+  wire ready_0;
+  wire [11:0] a_wire_0, b_wire_0, c_wire_0, d_wire_0, e_wire_0;
+  dreg #(4) sum_reg_0 (clk, sum_0, sum_1[3:0]);
+  dreg #(1) ready_reg_0 (clk, valid, ready_0);
+  dreg #(3) carry_reg_0 (clk, carry_out_0, carry_in_0);
+  dreg #(12) a_reg_0 (clk, a[15:4], a_wire_0);
+  dreg #(12) b_reg_0 (clk, b[15:4], b_wire_0);
+  dreg #(12) c_reg_0 (clk, c[15:4], c_wire_0);
+  dreg #(12) d_reg_0 (clk, d[15:4], d_wire_0);
+  dreg #(12) e_reg_0 (clk, e[15:4], e_wire_0);
+  
+  wire [2:0] carry_in_1, carry_out_1;
+  adder5carry adder_1 (a_wire_0[3:0], b_wire_0[3:0], c_wire_0[3:0], d_wire_0[3:0], e_wire_0[3:0], carry_in_0[0], carry_in_0[1], carry_in_0[2], carry_out_1[0], carry_out_1[1], carry_out_1[2], sum_1[7:4]);
+  
+  wire [11:0] sum_2;
+  wire ready_1;
+  wire [7:0] a_wire_1, b_wire_1, c_wire_1, d_wire_1, e_wire_1;
+  dreg #(8) sum_reg_1 (clk, sum_1, sum_2[7:0]);
+  dreg #(1) ready_reg_1 (clk, ready_0, ready_1);
+  dreg #(3) carry_reg_1 (clk, carry_out_1, carry_in_1);
+  dreg #(8) a_reg1 (clk, a_wire_0[11:4], a_wire_1);
+  dreg #(8) b_reg1 (clk, b_wire_0[11:4], b_wire_1);
+  dreg #(8) c_reg1 (clk, c_wire_0[11:4], c_wire_1);
+  dreg #(8) d_reg1 (clk, d_wire_0[11:4], d_wire_1);
+  dreg #(8) e_reg1 (clk, e_wire_0[11:4], e_wire_1);
+  
+  wire [2:0] carry_in_2, carry_out_2;
+  adder5carry adder_2 (a_wire_1[3:0], b_wire_1[3:0], c_wire_1[3:0], d_wire_1[3:0], e_wire_1[3:0], carry_in_1[0], carry_in_1[1], carry_in_1[2], carry_out_2[0], carry_out_2[1], carry_out_2[2], sum_2[11:8]);
+  
+  wire [15:0] sum_3;
+  wire ready_2;
+  wire [3:0] a_wire_2, b_wire_2, c_wire_2, d_wire_2, e_wire_2;
+  dreg #(12) sum_reg_2 (clk, sum_2, sum_3[11:0]);
+  dreg #(1) ready_reg_2 (clk, ready_1, ready_2);
+  dreg #(3) carry_reg_2 (clk, carry_out_2, carry_in_2);
+  dreg #(4) a_reg_2 (clk, a_wire_1[7:4], a_wire_2);
+  dreg #(4) b_reg_2 (clk, b_wire_1[7:4], b_wire_2);
+  dreg #(4) c_reg_2 (clk, c_wire_1[7:4], c_wire_2);
+  dreg #(4) d_reg_2 (clk, d_wire_1[7:4], d_wire_2);
+  dreg #(4) e_reg_2 (clk, e_wire_1[7:4], e_wire_2);
+  
+  wire [2:0] carry_out_3;
+  adder5carry adder_3 (a_wire_2, b_wire_2, c_wire_2, d_wire_2, e_wire_2, carry_in_2[0], carry_in_2[1], carry_in_2[2], carry_out_3[0], carry_out_3[1], carry_out_3[2], sum_3[15:12]);
+  
+  dreg #(16) sum_reg_3 (clk, sum_3, sum);
+  dreg #(1) ready_reg_3 (clk, ready_2, ready);
+
+endmodule
+
+// Pipelined neuron
+// 8 bit signed weights, bias (constant)
+// 8 bit unsigned inputs 
+// 1 bit input: new (when a set of inputs are available)
+// 8 bit unsigned output 
+// 1 bit output: ready (when the output is valid)
+module neuron(clk, w1, w2, w3, w4, b, x1, x2, x3, x4, new, y, ready);
+    input clk;
+    input [7:0] w1, w2, w3, w4, b;  // signed 2s complement
+    input [7:0] x1, x2, x3, x4;     // unsigned
+    input new;
+    output [7:0] y;                 // unsigned
+    output ready;
+
+    wire [3:0] ready_mult;
+  
+  wire [15:0] result_0;
+  multiply seq_mult_0 (clk, w1, x1, new, result_0, ready_mult[0]);
+  
+  wire [15:0] result_1;
+  multiply seq_mult_1 (clk, w2, x2, new, result_1, ready_mult[1]);
+  
+  wire [15:0] result_2;
+  multiply seq_mult_2 (clk, w3, x3, new, result_2, ready_mult[2]);
+  
+  wire [15:0] result_3;
+  multiply seq_mult_3 (clk, w4, x4, new, result_3, ready_mult[3]);
+  
+  wire [15:0] result_out_0;
+  dreg #(16) result_reg_0(clk, result_0, result_out_0);
+  wire [15:0] result_out_1;
+  dreg #(16) result_reg_1(clk, result_1, result_out_1);
+  wire [15:0] result_out_2;
+  dreg #(16) result_reg_2(clk, result_2, result_out_2);
+  wire [15:0] result_out_3;
+  dreg #(16) result_reg_3(clk, result_3, result_out_3);
+  
+  wire [7:0] bias_out;
+  dreg #(8) bias_reg (&ready_mult[3:0], b, bias_out);
+  
+  wire [3:0] ready_out;
+  dreg #(4) ready_reg (clk, ready_mult, ready_out);
+  
+  wire [15:0] signed_bias;  
+  assign signed_bias = {{8{bias_out[7]}}, bias_out};
+  
+  wire [15:0] sum_result;
+  wire summed_ready;
+  piped_adder adder (clk, result_out_0, result_out_1, result_out_2, result_out_3, signed_bias, &ready_out[3:0], sum_result, summed_ready);
+  
+  wire [15:0] sum_out;
+  dreg #(16) sum_reg (clk, sum_result, sum_out);
+  wire summed_ready_out;
+  dreg #(1) ready_sum_reg_0 (clk, summed_ready, summed_ready_out);
+  
+  wire [7:0] rectifier_out;
+  relu rectifier (sum_out, rectifier_out);
+  
+  dreg #(8) rectifier_reg (clk, rectifier_out, y);
+  dreg #(1) ready_sum_reg_1 (clk, summed_ready_out, ready);
+
+endmodule
